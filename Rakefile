@@ -4,9 +4,9 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    gem.name = "ruby-oauth-cli-twitter"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.name = "oauth-cli-twitter"
+    gem.summary = %Q{Twitter OAuth Interface for CLI Applications}
+    gem.description = %Q{Twitter OAuth Interface for CLI Applications}
     gem.email = "tily05@gmail.com"
     gem.homepage = "http://github.com/tily/ruby-oauth-cli-twitter"
     gem.authors = ["tily"]
