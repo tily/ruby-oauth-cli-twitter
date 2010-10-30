@@ -22,11 +22,12 @@ module OAuth
         case args.size
         when 1
           @options = args[0]
+          # TODO: add extender ?
           if Twitter.includer &&
              Twitter.includer.const_defined?(:CONSUMER_TOKEN) &&
              Twitter.includer.const_defined?(:CONSUMER_SECRET)
-            @consumer_token  = Twitter.base::CONSUMER_TOKEN
-            @consumer_secret = Twitter.base::CONSUMER_SECRET
+            @consumer_token  = Twitter.includer::CONSUMER_TOKEN
+            @consumer_secret = Twitter.includer::CONSUMER_SECRET
           elsif Object.const_defined?(:CONSUMER_TOKEN) &&
                 Object.const_defined?(:CONSUMER_SECRET)
             @consumer_token  = Object::CONSUMER_TOKEN
@@ -35,7 +36,6 @@ module OAuth
             @consumer_token  = CONSUMER_TOKEN
             @consumer_secret = CONSUMER_SECRET
           end
-          puts @consumer_token, @consumer_secret, @options
         when 2, 3
           @consumer_token, @consumer_secret, @options = args
         else
