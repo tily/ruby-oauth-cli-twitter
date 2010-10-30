@@ -52,6 +52,7 @@ module OAuth
             config['oauth_token'],
             config['oauth_token_secret']
           )
+          @access_token.params = config
         else
           @access_token = authorize
           save_config(config)
@@ -62,12 +63,13 @@ module OAuth
       def load_config
         if @options[:pit]
           Pit.get(@options[:pit])
-        elsif @options[:file]
+        elsif @options[:file] && File.exist?(@options[:file])
           YAML.load(File.read(@options[:file]))
         end
       end
     
       def save_config(config)
+        config = {} if !config
         config.update(@access_token.params)
         if @options[:pit]
           Pit.set(@options[:pit], :data => config)
