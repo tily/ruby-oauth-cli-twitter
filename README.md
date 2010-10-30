@@ -1,73 +1,96 @@
 OAuth::CLI::Twitter
-====================================================
+===================
 
 Description
 -----------
+
 Twitter OAuth interface for CLI applications.
 
 Usage
 -----
 
- * Normal Operation
+### Interface
+
+ * simple
 
         require 'oauth/cli/twitter'
         
-        access_token = OAuth::CLI::Twitter.get_access_token(
-          '358RyJ77o4BYJUViVRQ', 'aOHsTInoyOjNewpvC9c5uwBqF3XOd5xSGlHFtaB8A',
-          :save_to => ENV['HOME'] + '/.oauthclitwitter'
+        access_token = OAuth::CLI::Twitter.get_access_token(:pit => 'oauth-cli-twitter-simple')
+        access_token.post(
+          'http://twitter.com/statuses/update.json',
+          'status'=> 'hello from ruby-oauth-cli-twitter simple example'
         )
-        puts access_token.token, access_token.secret, access_token.user_id, access_token.screen_name
 
-results in:
+ * define constants
 
-        $ ruby example/get_access_token.rb
-        Go to URL below to allow this application.
-        http://api.twitter.com/oauth/authorize?oauth_token=3UQUEi92ao9fuveeZPaHhC3mOWvV8VamiMFsi8OFw
-        Enter pin > 6165542
-        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        7000262
-        tily
-
-and the config is written to your '~/.oauthclitwitter'.
-
-        $ cat ~/.oauthclitwitter
-        --- 
-        :secret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        :user_id: "7000262"
-        :screen_name: tily
-        :token: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
- * Open Browser
-
+        require 'rubygems'
+        require 'rubytter'
         require 'oauth/cli/twitter'
         
-        access_token = OAuth::CLI::Twitter.get_access_token(
-          '358RyJ77o4BYJUViVRQ', 'aOHsTInoyOjNewpvC9c5uwBqF3XOd5xSGlHFtaB8A',
-          :save_to => ENV['HOME'] + '/.oauthclitwitter', :open_browser => true
-        )
-        puts access_token.token, access_token.secret, access_token.user_id, access_token.screen_name
+        CONSUMER_TOKEN  = '358RyJ77o4BYJUViVRQ'
+        CONSUMER_SECRET = 'aOHsTInoyOjNewpvC9c5uwBqF3XOd5xSGlHFtaB8A'
+        
+        access_token = OAuth::CLI::Twitter.get_access_token(:pit => 'oauth-cli-twitter-dc')
+        rubytter = OAuthRubytter.new(access_token)
+        rubytter.update('hello from ruby-oauth-cli-twitter define constant example')
 
-results in:
+ * include
 
-        $ ruby example/get_access_token.rb
-        # after opening authorize_url with browser for your platform ...
-        Enter pin > 6165542
-        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        7000262
-        tily
+        require 'rubygems'
+        require 'twitter'
+        require 'oauth/cli/twitter'
+        
+        class MyApplication
+          include OAuth::CLI::Twitter
+        
+          CONSUMER_TOKEN  = '358RyJ77o4BYJUViVRQ'
+          CONSUMER_SECRET = 'aOHsTInoyOjNewpvC9c5uwBqF3XOd5xSGlHFtaB8A'
+        
+          def initialize
+            access_token = get_access_token(:pit => 'oauth-cli-twitter-inclusion')
+            oauth = Twitter::OAuth.new(CONSUMER_TOKEN, CONSUMER_SECRET)
+            oauth.authorize_from_access(access_token.token, access_token.secret)
+            @twitter = Twitter::Base.new(oauth)
+          end
+        
+          def update(status)
+            @twitter.update(status)
+          end
+        end
+        
+        app = MyApplication.new
+        app.update('hello from ruby-oauth-cli-twitter inclusion example')
 
-The config is wrote to file as the same as above.
+### Save Config
+
+ * save config to file
+
+        include OAuth::CLI::Twitter
+        p get_acccess_token(:file => ENV['HOME'] + '/.my_app')
+
+ * save config to pit
+
+        include OAuth::CLI::Twitter
+        p get_acccess_token(:pit => 'my_app')
 
 Requirement
 -----------
 
  * oauth
+ * readline
  * termtter
+ * pit
 
 Install
 -------
+
+### Archive Installation
+
+        rake install
+
+### Gem Installation
+
+        gem install oauth-cli-twitter
 
 Copyright
 ---------
