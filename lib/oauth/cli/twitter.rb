@@ -1,78 +1,112 @@
-require 'yaml'
-require 'ostruct'
+
 require 'rubygems'
-require 'oauth/cli'
-require 'readline' # for requiring 'termtter/system_extensions'
-require 'termtter/system_extensions' # for open_browser() method
+require 'oauth'
+require 'readline'
+require 'termtter/system_extensions'
+require 'pit'
 
 module OAuth
-  class CLI
-    class Twitter
-  
-      def self.get_access_token(consumer_token, consumer_secret, options)
-        new(consumer_token, consumer_secret).get_access_token(options)
+  class CLI 
+    module Twitter
+      extend self
+    
+      CONSUMER_TOKEN = 'UWhf189fDdtCZz6rq8Q5gA'
+      CONSUMER_SECRET = 'QQHee9yFJqWeztLvGRj5A552gCGIJ7N0yLtpsJPZeU'
+    
+      def self.included(includer)
+        @includer = includer
       end
-
-      def initialize(consumer_token, consumer_secret)
-        @consumer_token, @consumer_secret = consumer_token, consumer_secret
-      end
-  
-      def get_access_token(options)
-        raise ArgumentError unless options.is_a?(Hash)
-        if File.exist?(options[:save_to])
-          load_from_file(options[:save_to])
+      attr_accessor :includer
+    
+      def get_access_token(*args)
+        case args.size
+        when 1
+          @options = args[0]
+          if Twitter.includer &&
+             Twitter.includer.const_defined?(:CONSUMER_TOKEN) &&
+             Twitter.includer.const_defined?(:CONSUMER_SECRET)
+            @consumer_token  = Twitter.base::CONSUMER_TOKEN
+            @consumer_secret = Twitter.base::CONSUMER_SECRET
+          elsif Object.const_defined?(:CONSUMER_TOKEN) &&
+                Object.const_defined?(:CONSUMER_SECRET)
+            @consumer_token  = Object::CONSUMER_TOKEN
+            @consumer_secret = Object::CONSUMER_SECRET
+          else
+            @consumer_token  = CONSUMER_TOKEN
+            @consumer_secret = CONSUMER_SECRET
+          end
+          puts @consumer_token, @consumer_secret, @options
+        when 2, 3
+          @consumer_token, @consumer_secret, @options = args
         else
-          access_token = authorize(options[:open_browser])
-          save_to_file(access_token, options[:save_to]) if options[:save_to]
-          OpenStruct.new({
-              :token => access_token.params[:oauth_token],
-              :secret => access_token.params[:oauth_token_secret],
-              :user_id => access_token.params[:user_id],
-              :screen_name => access_token.params[:screen_name]
-          })
+          raise ArgumentError
+        end
+        execute
+      end
+    
+      def execute
+        config = load_config
+        if config && config['oauth_token'] && config['oauth_token_secret']
+          @access_token = OAuth::AccessToken.new(
+            consumer,
+            config['oauth_token'],
+            config['oauth_token_secret']
+          )
+        else
+          @access_token = authorize
+          save_config(config)
+        end
+        @access_token
+      end
+    
+      def load_config
+        if @options[:pit]
+          Pit.get(@options[:pit])
+        elsif @options[:file]
+          YAML.load(File.read(@options[:file]))
         end
       end
-  
-      def load_from_file(file)
-        OpenStruct.new(YAML.load(File.read(file)))
+    
+      def save_config(config)
+        config.update(@access_token.params)
+        if @options[:pit]
+          Pit.set(@options[:pit], :data => config)
+        elsif @options[:file]
+          File.open(@options[:file], 'w') do |f|
+            f.write(config.to_yaml)
+          end
+        end
       end
-  
-      def save_to_file(access_token, file)
-        File.open(file, 'w') do |f|
-          h = {:token => access_token.token, :secret => access_token.secret}
-          f.write(h.to_yaml)
-        end 
+    
+      def authorize
+        if @options[:browser]
+          Kernel.send(:open_browser, request_token.authorize_url)
+        else
+          STDOUT.puts 'Visit URL below to allow this application.'
+          STDOUT.puts request_token.authorize_url
+        end
+        request_token.get_access_token(:oauth_verifier => prompt_pin)
       end
-  
-      def authorize(open_browser)
-        consumer = OAuth::Consumer.new(
+    
+      def request_token
+        @request_token ||= consumer.get_request_token
+      end
+    
+      def consumer
+        @consumer ||= OAuth::Consumer.new(
           @consumer_token,
           @consumer_secret,
           :site => 'http://api.twitter.com',
           :proxy => ENV['http_proxy']
         )
-        request_token = consumer.get_request_token
-        url = request_token.authorize_url
-        pin = ''
-        if open_browser
-          open_browser(url)
-          pin = prompt_for_pin
-        else
-          puts 'Go to URL below to allow this application.'
-          puts url
-          pin = prompt_for_pin
-        end
-        request_token.get_access_token(:oauth_verifier => pin)
       end
-  
-      def prompt_for_pin
-        pin = ''
-        until pin =~ /^\d+$/
-          print 'Enter pin > '
-          pin = STDIN.gets.chomp
+      
+      def prompt_pin
+        while pin = Readline.readline('Enter pin > ')
+          break pin if pin =~ /^\d+$/
         end
-        pin
       end
     end
   end
 end
+
