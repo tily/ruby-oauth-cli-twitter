@@ -1,7 +1,7 @@
 
+require 'readline'
 require 'rubygems'
 require 'oauth'
-require 'readline'
 require 'termtter/system_extensions'
 require 'pit'
 
