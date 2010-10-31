@@ -76,8 +76,8 @@ Usage
 Requirement
 -----------
 
- * oauth
  * readline
+ * oauth
  * termtter
  * pit
 
