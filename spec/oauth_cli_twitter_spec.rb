@@ -66,6 +66,17 @@ describe OAuth::CLI::Twitter do
       @twitter.instance_variable_get('@consumer_token').should == @klass::CONSUMER_TOKEN
       @twitter.instance_variable_get('@consumer_secret').should == @klass::CONSUMER_SECRET
     end
+
+    it '#get_access_token gets constants of extender' do
+      @twitter.should_receive(:execute).and_return(@access_token)
+      @obj = Class.new
+      @obj::CONSUMER_TOKEN = 'extender consumer token'
+      @obj::CONSUMER_SECRET = 'extender consumer secret'
+      @obj.send(:extend, OAuth::CLI::Twitter)
+      @twitter.get_access_token(@options)
+      @twitter.instance_variable_get('@consumer_token').should == @obj::CONSUMER_TOKEN
+      @twitter.instance_variable_get('@consumer_secret').should == @obj::CONSUMER_SECRET
+    end
   end
 
   describe 'execution' do

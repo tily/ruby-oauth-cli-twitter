@@ -16,14 +16,23 @@ module OAuth
       def self.included(includer)
         @includer = includer
       end
-      attr_accessor :includer
+
+      def self.extended(extender)
+        @extender = extender
+      end
+
+      attr_accessor :includer, :extender
     
       def get_access_token(*args)
         case args.size
         when 1
           @options = args[0]
-          # TODO: add extender ?
-          if Twitter.includer &&
+          if Twitter.extender &&
+             Twitter.extender.const_defined?(:CONSUMER_TOKEN) &&
+             Twitter.extender.const_defined?(:CONSUMER_SECRET)
+            @consumer_token  = Twitter.extender::CONSUMER_TOKEN
+            @consumer_secret = Twitter.extender::CONSUMER_SECRET
+          elsif Twitter.includer &&
              Twitter.includer.const_defined?(:CONSUMER_TOKEN) &&
              Twitter.includer.const_defined?(:CONSUMER_SECRET)
             @consumer_token  = Twitter.includer::CONSUMER_TOKEN
