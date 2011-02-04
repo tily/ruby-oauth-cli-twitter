@@ -79,7 +79,7 @@ Requirement
  * readline
  * oauth
  * termtter
- * pit
+ * [pit](http://rubygems.org/gems/pit)
 
 Install
 -------
