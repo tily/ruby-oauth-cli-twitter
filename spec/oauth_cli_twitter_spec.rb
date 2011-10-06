@@ -2,7 +2,9 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe OAuth::CLI::Twitter do
   before do
-    @twitter = Object.new.extend(OAuth::CLI::Twitter)
+    @klass = Class.new
+    @klass.send(:include, OAuth::CLI::Twitter)
+    @twitter = @klass.new
   end
 
   describe 'taking arguments' do
@@ -49,11 +51,11 @@ describe OAuth::CLI::Twitter do
 
     it '#get_access_token gets constants of Object' do
       @twitter.should_receive(:execute).and_return(@access_token)
-      Object::CONSUMER_TOKEN = 'object consumer token'
-      Object::CONSUMER_SECRET = 'object consumer secret'
+      @klass::CONSUMER_TOKEN = 'object consumer token'
+      @klass::CONSUMER_SECRET = 'object consumer secret'
       @twitter.get_access_token(@options)
-      @twitter.instance_variable_get('@consumer_token').should == Object::CONSUMER_TOKEN
-      @twitter.instance_variable_get('@consumer_secret').should == Object::CONSUMER_SECRET
+      @twitter.instance_variable_get('@consumer_token').should == @klass::CONSUMER_TOKEN
+      @twitter.instance_variable_get('@consumer_secret').should == @klass::CONSUMER_SECRET
     end
 
     it '#get_access_token gets constants of includer' do
@@ -87,6 +89,7 @@ describe OAuth::CLI::Twitter do
     it '#execute and config loaded' do
       config = {'oauth_token' => 'dummy oauth token', 'oauth_token_secret' => 'dummy oauth token secret'}
       consumer = 'dummy consumer'
+      @access_token.should_receive(:params=).with(config)
       @twitter.should_receive(:load_config).and_return(config)
       @twitter.should_receive(:consumer).and_return(consumer)
       OAuth::AccessToken.should_receive(:new).with(consumer, config['oauth_token'], config['oauth_token_secret']).and_return(@access_token)
@@ -97,7 +100,7 @@ describe OAuth::CLI::Twitter do
       config = {}
       @twitter.should_receive(:load_config).and_return(config)
       @twitter.should_receive(:authorize).and_return(@access_token)
-      @twitter.should_receive(:save_config).with(config)
+      @twitter.should_receive(:save_config).with(@access_token)
       @twitter.execute.should == @access_token
     end
   end
@@ -120,6 +123,7 @@ describe OAuth::CLI::Twitter do
       file = '/path/to/.conf'
       yaml = '- dummy yaml'
 
+      File.should_receive(:exist?).with(file).and_return(true)
       File.should_receive(:read).with(file).and_return(yaml)
       YAML.should_receive(:load).with(yaml).and_return(@config)
 
@@ -130,34 +134,33 @@ describe OAuth::CLI::Twitter do
 
   describe 'saving config' do
     before do
-      @twitter.instance_variable_set('@access_token', mock.tap {|m|
-        m.should_receive(:params).and_return('dummy access token params')
-      })
-      @config = mock.tap {|m| m.should_receive(:update).with('dummy access token params') }
+      @config = {'string_key' => 'value', :symbol_key => :value}
+      @access_token = mock.tap {|m| m.should_receive(:params).and_return(@config) }
+      @twitter.instance_variable_set('@access_token', @access_token)
     end
 
     it '#save_config to pit' do
       pit = 'pit key'
+      data = {'string_key' => 'value'}
 
-      Pit.should_receive(:set).with(pit, :data => @config)
+      Pit.should_receive(:set).with(pit, :data => data) 
 
       @twitter.instance_variable_set('@options', {:pit => pit})
     end
 
     it '#save_config to file' do
       file = '/path/to/.conf'
-      yaml = '- dummy yaml'
+      yaml = "--- \nstring_key: value\n"
 
       File.should_receive(:open).with(file, 'w').and_yield(
         mock.tap {|m| m.should_receive(:write).with(yaml) }
       )
-      @config.should_receive(:to_yaml).and_return(yaml)
 
       @twitter.instance_variable_set('@options', {:file => file})
     end
 
     after do
-      @twitter.save_config(@config)
+      @twitter.save_config(@access_token)
     end
   end
 
