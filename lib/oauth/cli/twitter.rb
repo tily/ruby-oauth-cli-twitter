@@ -64,7 +64,7 @@ module OAuth
           @access_token.params = config
         else
           @access_token = authorize
-          save_config(config)
+          save_config(@access_token)
         end
         @access_token
       end
@@ -77,9 +77,10 @@ module OAuth
         end
       end
     
-      def save_config(config)
-        config = {} if !config
-        config.update(@access_token.params)
+      def save_config(access_token)
+        config = access_token.params.select {|key|
+          key.is_a?(String)
+        }
         if @options[:pit]
           Pit.set(@options[:pit], :data => config)
         elsif @options[:file]
